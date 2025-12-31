@@ -1,11 +1,10 @@
 flask
 flask-cors
-pdfplumber
-pypdf
-sentence-transformers
-faiss-cpu
 pydantic
 rapidfuzz
 numpy
-groq
+faiss-cpu
 gunicorn
+groq
+voyageai
+requests
