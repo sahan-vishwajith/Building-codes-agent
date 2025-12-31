@@ -19,13 +19,14 @@ services:
       #   sync: false
 
   # ---------------- FRONTEND (Vite static site) ----------------
-  - type: static
+  - type: web
     name: eebc-advisor-frontend
+    runtime: node
     region: oregon
     plan: free
     rootDir: eebc-advisor/frontend
     buildCommand: npm ci && npm run build
-    staticPublishPath: dist
+    startCommand: npx serve -s dist -l 3000
     envVars:
       # Change this after backend deploy:
       - key: VITE_API_BASE_URL
