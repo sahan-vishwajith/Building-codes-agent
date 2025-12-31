@@ -1,0 +1,8 @@
+
+Building.ipynb
+
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.env

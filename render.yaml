@@ -1,0 +1,25 @@
+services:
+  - type: web_service
+    name: eebc-advisor-backend
+    env: python
+    region: oregon
+    plan: free
+    root: eebc-advisor/backend
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 app:app
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SKIP_INDEX_BUILD
+        value: "true"
+
+  - type: static_site
+    name: eebc-advisor-frontend
+    env: static
+    region: oregon
+    plan: free
+    root: eebc-advisor/frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+

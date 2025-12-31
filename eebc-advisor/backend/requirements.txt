@@ -1,0 +1,11 @@
+flask
+flask-cors
+pdfplumber
+pypdf
+sentence-transformers
+faiss-cpu
+pydantic
+rapidfuzz
+numpy
+groq
+gunicorn
