@@ -7,13 +7,11 @@ services:
     plan: free
     rootDir: eebc-advisor/backend
     buildCommand: pip install --no-cache-dir -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --max-requests 1000 --max-requests-jitter 100
     healthCheckPath: /health
     envVars:
       - key: FLASK_ENV
         value: production
-      - key: SKIP_INDEX_BUILD
-        value: "true"
       # If you use Groq key, set it in Render Dashboard as "Secret"
       # - key: GROQ_API_KEY
       #   sync: false

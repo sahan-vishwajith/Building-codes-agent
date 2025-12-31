@@ -22,6 +22,28 @@ app = Flask(__name__)
 CORS(app)
 
 store = VectorStore()
+_index_loaded = False
+
+def get_store():
+    """Lazy-load index on first use instead of startup"""
+    global _index_loaded
+    if not _index_loaded:
+        if os.path.exists(FAISS_PATH) and os.path.exists(CHUNKS_PATH):
+            print("Loading FAISS index on first request...")
+            store.load(FAISS_PATH, CHUNKS_PATH)
+            print("FAISS index loaded successfully.")
+        else:
+            if not SKIP_INDEX_BUILD:
+                print("Building index from PDF on first request...")
+                pages = extract_pages(PDF_PATH)
+                chunks = split_into_chunks(pages)
+                store.build(chunks)
+                store.save(FAISS_PATH, CHUNKS_PATH)
+                print("Index built & saved.")
+            else:
+                print("Index files not found and SKIP_INDEX_BUILD=True — operating without index.")
+        _index_loaded = True
+    return store
 
 def ensure_index():
     if os.path.exists(FAISS_PATH) and os.path.exists(CHUNKS_PATH):
@@ -36,15 +58,15 @@ def ensure_index():
     store.save(FAISS_PATH, CHUNKS_PATH)
     print("Index built & saved.")
 
-# Initialize/load/build index depending on SKIP_INDEX_BUILD env var.
-if SKIP_INDEX_BUILD:
-    if os.path.exists(FAISS_PATH) and os.path.exists(CHUNKS_PATH):
-        store.load(FAISS_PATH, CHUNKS_PATH)
-        print("Loaded FAISS index (SKIP_INDEX_BUILD).")
-    else:
-        print("SKIP_INDEX_BUILD=True and index files not found — starting without index.")
-else:
-    ensure_index()
+# Don't load index at startup - load on first request
+# if SKIP_INDEX_BUILD:
+#     if os.path.exists(FAISS_PATH) and os.path.exists(CHUNKS_PATH):
+#         store.load(FAISS_PATH, CHUNKS_PATH)
+#         print("Loaded FAISS index (SKIP_INDEX_BUILD).")
+#     else:
+#         print("SKIP_INDEX_BUILD=True and index files not found — starting without index.")
+# else:
+#     ensure_index()
 
 from rag.agents import run_pipeline
 
@@ -53,7 +75,8 @@ def chat():
     data = request.get_json(force=True)
     req = ChatRequest(**data)
 
-    answer, applies, reason, sources = run_pipeline(req.message, req.context, store)
+    current_store = get_store()
+    answer, applies, reason, sources = run_pipeline(req.message, req.context, current_store)
 
     resp = ChatResponse(
         answer=answer,
