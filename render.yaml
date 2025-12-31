@@ -1,25 +1,32 @@
 services:
-  - type: web_service
+  # ---------------- BACKEND (Flask API) ----------------
+  - type: web
     name: eebc-advisor-backend
     env: python
     region: oregon
     plan: free
-    root: eebc-advisor/backend
+    rootDir: eebc-advisor/backend
     buildCommand: pip install --no-cache-dir -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 app:app
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
     healthCheckPath: /health
     envVars:
       - key: FLASK_ENV
         value: production
       - key: SKIP_INDEX_BUILD
         value: "true"
+      # If you use Groq key, set it in Render Dashboard as "Secret"
+      # - key: GROQ_API_KEY
+      #   sync: false
 
-  - type: static_site
+  # ---------------- FRONTEND (Vite static site) ----------------
+  - type: static
     name: eebc-advisor-frontend
-    env: static
     region: oregon
     plan: free
-    root: eebc-advisor/frontend
+    rootDir: eebc-advisor/frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
-
+    envVars:
+      # Change this after backend deploy:
+      - key: VITE_API_BASE_URL
+        value: https://eebc-advisor-backend.onrender.com
