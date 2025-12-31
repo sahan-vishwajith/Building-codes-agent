@@ -1,58 +1,42 @@
-import os
 import numpy as np
-import voyageai
+
 
 class VoyageEmbedder:
     """Wrapper for Voyage AI embeddings API"""
 
-    def __init__(self, model: str = "voyage-3", api_key: str = None):
+    def __init__(self, client, model="voyage-3"):
         """
-        Initialize Voyage AI embedder
+        Initialize Voyage AI embedder with a pre-initialized client
 
         Args:
+            client: voyageai.Client instance
             model: Voyage model name (default: voyage-3)
-            api_key: Voyage API key (defaults to VOYAGE_API_KEY env var)
         """
+        self.client = client
         self.model = model
-        self.api_key = api_key or os.getenv("VOYAGE_API_KEY")
 
-        if not self.api_key:
-            raise ValueError(
-                "VOYAGE_API_KEY environment variable not set. "
-                "Please set it before initializing the embedder."
-            )
-
-        self.client = voyageai.Client(api_key=self.api_key)
-        print(f"Initialized Voyage embedder with model: {self.model}")
-
-    def encode(self, texts, batch_size: int = 128, show_progress_bar: bool = False):
+    def encode(self, texts):
         """
         Encode texts to embeddings using Voyage API
 
         Args:
             texts: List of text strings to embed
-            batch_size: Batch size for API requests (Voyage handles batching)
-            show_progress_bar: Whether to show progress (ignored for API calls)
 
         Returns:
-            numpy array of embeddings with shape (len(texts), embedding_dim)
+            numpy array of normalized embeddings with shape (len(texts), embedding_dim)
         """
-        if isinstance(texts, str):
-            texts = [texts]
+        # texts is a list[str]
+        result = self.client.embed(texts, model=self.model)
 
-        print(f"Encoding {len(texts)} texts with Voyage API (model: {self.model})...")
+        # voyageai SDK typically returns embeddings as list[list[float]]
+        vecs = getattr(result, "embeddings", result)
 
-        try:
-            # Voyage API handles batching internally
-            result = self.client.embed(texts, model=self.model, input_type="document")
+        embeddings = np.array(vecs, dtype=np.float32)
 
-            # Extract embeddings from result
-            embeddings = np.array([item.embedding for item in result.embeddings])
-            print(f"Successfully encoded {len(embeddings)} texts")
+        # normalize for cosine similarity with IndexFlatIP
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-12
+        embeddings = embeddings / norms
 
-            return embeddings
+        return embeddings
 
-        except Exception as e:
-            print(f"Error encoding texts: {e}")
-            raise
 

@@ -2,6 +2,7 @@ import json
 import os
 import numpy as np
 import faiss
+import voyageai
 from .embedder import VoyageEmbedder
 
 def _normalize(v: np.ndarray) -> np.ndarray:
@@ -16,12 +17,22 @@ class VectorStore:
         self.chunks = []
         self.embs = None
 
+        # Initialize Voyage client once
+        api_key = os.getenv("VOYAGE_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "VOYAGE_API_KEY environment variable not set. "
+                "Please set it before initializing VectorStore."
+            )
+        self.client = voyageai.Client(api_key=api_key)
+        print(f"Initialized Voyage client with model: {self.model}")
+
     @property
     def embedder(self):
         """Lazy-load Voyage embedder on first access"""
         if self._embedder is None:
             print(f"Loading Voyage embedder: {self.model}")
-            self._embedder = VoyageEmbedder(model=self.model)
+            self._embedder = VoyageEmbedder(client=self.client, model=self.model)
         return self._embedder
 
     def build(self, chunks, batch_size=64):
@@ -33,10 +44,12 @@ class VectorStore:
         embs = []
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i+batch_size]
-            batch_embs = self.embedder.encode(batch, show_progress_bar=False)
+            print(f"  Encoding batch {i//batch_size + 1}/{(len(texts) + batch_size - 1)//batch_size}...")
+            batch_embs = self.embedder.encode(batch)
             embs.append(batch_embs)
 
         embs = np.vstack(embs).astype("float32")
+        # Already normalized by VoyageEmbedder, but normalize again to be safe
         embs = _normalize(embs)
 
         dim = embs.shape[1]
@@ -70,3 +83,5 @@ class VectorStore:
             c["score"] = float(s)
             out.append(c)
         return out
+
+
