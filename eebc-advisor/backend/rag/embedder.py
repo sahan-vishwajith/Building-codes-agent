@@ -28,8 +28,16 @@ class VoyageEmbedder:
         # texts is a list[str]
         result = self.client.embed(texts, model=self.model)
 
-        # voyageai SDK typically returns embeddings as list[list[float]]
-        vecs = getattr(result, "embeddings", result)
+        # Extract embeddings from result
+        # Voyage SDK returns result.embeddings as a list of embeddings
+        if hasattr(result, 'embeddings'):
+            vecs = result.embeddings
+        else:
+            vecs = result
+
+        # Handle case where embeddings are objects with .embedding attribute
+        if vecs and hasattr(vecs[0], 'embedding'):
+            vecs = [item.embedding for item in vecs]
 
         embeddings = np.array(vecs, dtype=np.float32)
 
