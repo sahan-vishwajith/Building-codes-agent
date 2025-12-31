@@ -9,10 +9,19 @@ def _normalize(v: np.ndarray) -> np.ndarray:
 
 class VectorStore:
     def __init__(self, embed_model="sentence-transformers/all-MiniLM-L6-v2"):
-        self.embedder = SentenceTransformer(embed_model)
+        self.embed_model = embed_model
+        self._embedder = None
         self.index = None
         self.chunks = []
         self.embs = None
+
+    @property
+    def embedder(self):
+        """Lazy-load embedder on first access"""
+        if self._embedder is None:
+            print(f"Loading embedder model: {self.embed_model}")
+            self._embedder = SentenceTransformer(self.embed_model)
+        return self._embedder
 
     def build(self, chunks, batch_size=64):
         self.chunks = chunks

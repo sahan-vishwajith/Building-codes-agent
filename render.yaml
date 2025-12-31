@@ -7,7 +7,7 @@ services:
     plan: free
     rootDir: eebc-advisor/backend
     buildCommand: pip install --no-cache-dir -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --max-requests 1000 --max-requests-jitter 100
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --worker-class sync --timeout 120 --max-requests 100 --max-requests-jitter 20
     healthCheckPath: /health
     envVars:
       - key: FLASK_ENV
