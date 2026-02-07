@@ -1,5 +1,6 @@
 import re, json, hashlib
 import pdfplumber
+import pandas as pd
 
 def clean_text(t: str) -> str:
     t = t or ""
@@ -45,3 +46,17 @@ def split_into_chunks(pages, chunk_chars=1800, overlap_chars=250):
 def save_chunks(chunks, out_json_path: str):
     with open(out_json_path, "w", encoding="utf-8") as f:
         json.dump(chunks, f, ensure_ascii=False, indent=2)
+
+
+
+
+def extract_excel(path: str):
+    df = pd.read_excel(path)
+    text = "\n".join(
+        df.astype(str)
+          .fillna("")
+          .values
+          .flatten()
+    )
+    return [{"page": 1, "text": clean_text(text)}]
+

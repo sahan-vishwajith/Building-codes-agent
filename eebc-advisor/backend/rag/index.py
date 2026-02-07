@@ -117,4 +117,36 @@ class VectorStore:
             out.append(c)
         return out
 
+    def append(self, new_chunks, batch_size=64):
+        if self.index is None:
+            raise RuntimeError("Index not initialized. Load or build first.")
+
+        texts = [c["text"] for c in new_chunks]
+
+        embs = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            batch_embs = self.embedder.encode(batch)
+            embs.append(batch_embs)
+
+        embs = np.vstack(embs).astype("float32")
+        embs = _normalize(embs)
+
+        # Add vectors to FAISS
+        self.index.add(embs)
+
+        # Append metadata
+        start_id = len(self.chunks)
+        for i, c in enumerate(new_chunks):
+            c["id"] = start_id + i
+            self.chunks.append(c)
+
+        # Optional but useful
+        if self.embs is None:
+            self.embs = embs
+        else:
+            self.embs = np.vstack([self.embs, embs])
+
+        print(f"Appended {len(new_chunks)} new chunks to FAISS index")
+
 
